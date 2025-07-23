@@ -2,7 +2,7 @@
 
 import {} from 'dotenv/config' 
 import mongoose from "mongoose";
-import connectDB from "../db/index.js";
+import connectDB from "./db/index.js";
 
 
 
