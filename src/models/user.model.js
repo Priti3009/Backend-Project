@@ -49,7 +49,7 @@ const userSchema=new Schema({
 
 userSchema.pre("save",async function(next){
     if (!this.isModified("password")) return next();  //if password is not modified then return from this method
-    this.password=bcrypt.hash(this.password , 10)  //10 is the number of rounds
+    this.password=await bcrypt.hash(this.password , 10)  //10 is the number of rounds
     next();    //call next to go to next middleware
 
 })    //middleware function (hook) that runs before a specific action (like save, find, remove, etc.).In this case , we are encrypting the password before saving it. 
@@ -77,7 +77,7 @@ userSchema.methods.generateAccessToken=function(){
 }
 
 userSchema.methods.generateRefreshToken=function(){
-    return jwt.sign(                                   //directly return the access token 
+    return jwt.sign(                                   //directly return the refresh token 
         {
             _id:this._id              //we keep less info here because it gets refreshed regularly
         },

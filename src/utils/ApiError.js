@@ -20,3 +20,4 @@ class ApiError extends Error{  //Error class is provided by nodejs
     }
 
 }
+export {ApiError}

@@ -1,4 +1,4 @@
-import {v2 as cloudinary} from cloudinary;
+import {v2 as cloudinary} from 'cloudinary';
 import fs from "fs";
 
 cloudinary.config({    //this configuartion allows for file handling (give the account and login )
@@ -7,7 +7,7 @@ cloudinary.config({    //this configuartion allows for file handling (give the a
         api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const uploadCloudinary=async function(localFilePath){
+const uploadOnCloudinary=async function(localFilePath){
     try{
         if(!localFilePath)  return null;
 
@@ -17,7 +17,8 @@ const uploadCloudinary=async function(localFilePath){
         })
 
         //file has been uploaded successfully
-        console.log("File is uploaded on cloudinary" , response.url)
+        //console.log("File is uploaded on cloudinary" , response.url)  <-  to check file is uploaded or not
+        fs.unlinkSync(localFilePath);        //unlink(remove) the file from local server after upload to cloudinary
         return response;
 
 
@@ -28,4 +29,4 @@ const uploadCloudinary=async function(localFilePath){
     }
 }
 
-export {uploadCloudinary}
+export {uploadOnCloudinary}
