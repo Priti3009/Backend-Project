@@ -273,6 +273,8 @@ const updateUserAvatar=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Avatar file is missing")
     }
 
+    //TODO: delete old image after setting new avatar img
+
     const avatar=await uploadOnCloudinary(avatarLocalPath)
 
     if(!avatar.url){
@@ -320,6 +322,134 @@ const updateUserCoverImage =asyncHandler(async(req,res)=>{
     .json(new ApiResponse(200,user,"coverImage updated successfully"))
 
 }) 
+
+const getUserChannelProfile=asyncHandler(async(req,res)=>{  //this fucntion is to get the profile details like no. of subscribers and no. of channel subscribed
+
+    const {username}=req.params;   //get the username whose details we want from the parameters
+
+    if(!username?.trim){                      //check if username is there 
+        throw new ApiError(400,"Username is missing");
+    }
+
+    const channel=await User.aggregate([      //mongodb aggregagtion pipeline 
+        {
+            $match:{
+                username:username?.toLowerCase()    //first it will match the username from the db and check its availability 
+            }
+        },
+        {
+            $lookup:{                         //this will aggregate both the models-user and subscription (to give the number of subscribers of a channel)
+                from:"subscriptions",         // from where we are taking the data
+                localField:"_id",             // current model (user)  field to search in subcriptions model
+                foreignField:"channel",       // name of the field of subscriptions model(we need channel to get the number of subscribers it have)
+                as:"subscribers"           //collect all document under this name
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions", 
+                localField:"_id",
+                foreignField:"subscriber",      //we will match the subscriber with the _id(user) to get the documents where all user_id are same  and the channel field will give the channel it(the specific user) has subscribed to
+                as:"subscribedTo"
+            }
+        },
+        {
+            $addFields:{                     //add new fields to the user model
+                subscribersCount:{
+                    $size:"$subscribers"      // to count the number of subscribers(we take $ sign because now subscribers is a field)
+                },
+                channelSubscribedToCount:{
+                    $size:"$subscribedTo"       //to count the number of channels a user has subscribed to
+                },
+                isSubscribed:{       //return true if the loggedInuser is a subscriber
+                    $cond:{
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},   //checks if the subscriber(current user) is present in the subscribers list($in operator is used to compare these two)
+                        then:true,
+                        else:false
+                    }
+                } 
+            }
+        },
+        {
+            $project:{          //this operator projects the info(select which info to give )
+                fullName:1,
+                username:1,
+                subscribersCount:1,
+                channelSubscribedToCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImage:1,
+                email:1
+
+            }
+        }
+    ])
+
+    if(!channel?.length){
+        throw new ApiError(400,"channel does not exists")
+    }
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"User channel fetched successfully")   //return the 1st value of channel array so that required values can be easily found
+    )
+})
+
+const getWatchHistory=asyncHandler(async(req,res)=>{
+    const user=User.aggregate([
+        {
+            $match:{
+                _id:new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{                       // pipeline to join users and videos to get watch history
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[                 // another pipeline inside videos to get the user-Info of the videos  (nested pipeline)
+                    {
+                        $lookup:{                  //get user-info from users-db by joining _id in users and owner in videos
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",  
+                            pipeline:[                //this pipeline to get some specific fields from the users
+                                {
+                                 $project:{
+                                    fullName:1,
+                                    username:1,
+                                    avatar:1
+                                }
+                                }
+                               
+                            ]
+
+                        }
+
+                    },
+                    {
+                        $addFields:{        // to get the 1st element of the array 
+                            owner:{    
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,     //only send 1st element of array
+            "Watch History fetched successfully"
+        )
+    )
+})
 export {
      registerUser,
     loginUser,
@@ -329,5 +459,7 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 }
