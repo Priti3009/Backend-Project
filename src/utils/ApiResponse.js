@@ -1,9 +1,13 @@
-class ApiResponse{
+class ApiResponse{              //Standardized API Response
+
     constructor(statusCode,data,message="Success"){
         this.statusCode=statusCode
         this.data=data
         this.message=message
         this.success=statusCode<400
+
     }
 }
-export {ApiResponse}
+
+
+export {ApiResponse}     //Provides a consistent JSON format for all API responses.

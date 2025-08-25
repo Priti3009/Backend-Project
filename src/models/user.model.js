@@ -50,7 +50,7 @@ const userSchema=new Schema({
 
 userSchema.pre("save",async function(next){
     if (!this.isModified("password")) return next();  //if password is not modified then return from this method
-    this.password=await bcrypt.hash(this.password , 10)  //10 is the number of rounds
+    this.password=await bcrypt.hash(this.password , 10)  //If password was modified → hash it with bcrypt (10 rounds).
     next();    //call next to go to next middleware
 
 })    //middleware function (hook) that runs before a specific action (like save, find, remove, etc.).In this case , we are encrypting the password before saving it. 
@@ -62,7 +62,7 @@ userSchema.methods.isPasswordCorrect=async function(password){   //this is a cus
 }
 
 userSchema.methods.generateAccessToken=function(){
-    return jwt.sign(                                   //directly return the access token 
+    return jwt.sign(                                   //directly return the access token (jwt.sign(payload, secret, options))
         {
             _id:this._id,
             email:this.email,
@@ -70,7 +70,7 @@ userSchema.methods.generateAccessToken=function(){
             fullName:this.fullName
 
         },
-        process.env.ACCESS_TOKEN_SECRET,
+        process.env.ACCESS_TOKEN_SECRET,           //Used to create the signature so servers can verify the token wasn’t tampered with.
         {
             expiresIn:process.env.ACCESS_TOKEN_EXPIRY
         }

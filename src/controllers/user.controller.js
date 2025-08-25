@@ -53,7 +53,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
     const avatarLocalPath=req.files?.avatar[0]?.path   // as the avatar is passed through middleware(in routes),we need to get it from middleware using this
                                                        // ?. <- this is optional chaining, we look for avatar in storage file of multer(middleware)
-                                                       // and [0] is the first object ,to that we can get the path using .path 
+                                                       // and [0] is the first object ,so that we can get the path using .path 
                                                        //and finally the avatar will be stored in avatarLocalPath from middlewre storage
     
    // const coverImageLocalPath=req.files?.coverImage[0].path
@@ -69,8 +69,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const avatar=await uploadOnCloudinary(avatarLocalPath)            //upload both on cloudinary
     const coverImage=await uploadOnCloudinary(coverImageLocalPath)
-
-   
 
 
     if(!avatar){
@@ -156,21 +154,21 @@ const logoutUser=asyncHandler(async(req,res)=>{
     await User.findByIdAndUpdate(                   //findByIdAndUpdate is a method which will find the user and also update the refreshToken 
         req.user._id,       
         {
-            $set:{
-                refreshToken:undefined               //here the refreshToken is set to undefined ,to logout the user
+            $unset:{
+                refreshToken:1               //removes the field from document ,to logout the user
             }
         },{
             new:true                   //this is done to get the new updated user whenever accessed,not the old one
         }
     )
     
-     const options = {
-        httpOnly:true,
-        secure:true
+     const options = {                       
+        httpOnly:true,                   //Makes the cookie inaccessible to JavaScript running in the browser (via document.cookie).
+        secure:true                      //Ensures the cookie is only sent over HTTPS connections.
     }
 
     return res
-    .status(200)
+    .status(200)     
     .clearCookie("accessToken",options)
     .clearCookie("refreshToken",options)
     .json(
@@ -186,7 +184,7 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
         throw new ApiError(401,"Unauthorized request");
     }
    try {
-     const decodedToken=jwt.verify(incomingRefreshToken,REFRESH_TOKEN_SECRET)
+     const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
  
      const user=await User.findById(decodedToken?._id)
  
@@ -323,7 +321,7 @@ const updateUserCoverImage =asyncHandler(async(req,res)=>{
 
 }) 
 
-const getUserChannelProfile=asyncHandler(async(req,res)=>{  //this fucntion is to get the profile details like no. of subscribers and no. of channel subscribed
+const getUserChannelProfile=asyncHandler(async(req,res)=>{  //this function is to get the profile details like no. of subscribers and no. of channel subscribed
 
     const {username}=req.params;   //get the username whose details we want from the parameters
 
